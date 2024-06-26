@@ -1,11 +1,18 @@
 const { validationResult } = require('express-validator');
-const tokenService = require('../models/tokenService');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
 const AuthError = require('../exceptions/errors');
-const cookieParser = require('cookie-parser');
+
+function generateAccessToken(payload) {
+  return jwt.sign(payload, process.env.SECRET_access, { expiresIn: '1h' });
+}
+
+function generateRefreshToken(payload) {
+  return jwt.sign(payload, process.env.SECRET_refresh, { expiresIn: '24h' });
+}
 
 class AuthController {
   async registration(req, res, next) {
@@ -33,10 +40,11 @@ class AuthController {
           role: 'USER',
         },
       });
-      const tokens = await tokenService.generateTokens({ id: newUser.id, email: newUser.email });
-      await tokenService.saveToken(newUser.id, tokens.refreshToken);
-      res.cookie('refreshToken', tokens.refreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
-      return res.json({ user: newUser, ...tokens });
+      const accessToken = generateAccessToken({ id: newUser.id, email: newUser.email });
+      const refreshToken = generateRefreshToken({ id: newUser.id, email: newUser.email });
+      await saveRefreshToken(newUser.id, refreshToken);
+      res.cookie('refreshToken', refreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
+      return res.json({ user: newUser, accessToken });
     } catch (e) {
       next(e);
     }
@@ -58,10 +66,11 @@ class AuthController {
       if (!checkPassword) {
         throw AuthError.BadRequest('Неверный пароль');
       }
-      const tokens = await tokenService.generateTokens({ id: user.id, email: user.email });
-      await tokenService.saveToken(user.id, tokens.refreshToken);
-      res.cookie('refreshToken', tokens.refreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
-      return res.json({ user, ...tokens });
+      const accessToken = generateAccessToken({ id: user.id, email: user.email });
+      const refreshToken = generateRefreshToken({ id: user.id, email: user.email });
+      await saveRefreshToken(user.id, refreshToken);
+      res.cookie('refreshToken', refreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
+      return res.json({ user, accessToken });
     } catch (e) {
       next(e);
     }
@@ -97,33 +106,48 @@ class AuthController {
   async refresh(req, res, next) {
     try {
       const { refreshToken } = req.cookies;
-  
-      if (!refreshToken) {
-        throw AuthError.UnauthorizedError();
-      }
-  
-      const userData = await tokenService.validateRefreshToken(refreshToken);
-      const tokenFromDB = await tokenService.findToken(refreshToken);
-  
-      if (!userData || !tokenFromDB) {
-        throw AuthError.UnauthorizedError();
-      }
-  
+      const token = jwt.verify(refreshToken, process.env.SECRET_refresh);
       const user = await prisma.users.findUnique({
         where: {
-          id: userData.id
-        }
+          id: token.id,
+        },
       });
-  
-      const tokens = await tokenService.generateTokens({ id: user.id, email: user.email });
-      await tokenService.saveToken(user.id, tokens.refreshToken);
-  
-      res.cookie('refreshToken', tokens.refreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
-      return res.json({ ...tokens, user });
-  
+      if (!user) {
+        throw AuthError.BadRequest('Пользователь не найден');
+      }
+      const accessToken = generateAccessToken({ id: user.id, email: user.email });
+      const newRefreshToken = generateRefreshToken({ id: user.id, email: user.email });
+      await saveRefreshToken(user.id, newRefreshToken);
+      res.cookie('refreshToken', newRefreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
+      return res.json({ accessToken });
     } catch (e) {
       next(e);
     }
+  }
+}
+
+async function saveRefreshToken(userId, refreshToken) {
+  const tokenData = await prisma.tokens.findFirst({
+    where: {
+     userId: userId,
+    },
+  });
+  if (tokenData) {
+    await prisma.tokens.update({
+      where: {
+        id: tokenData.id,
+      },
+      data: {
+        refreshToken: refreshToken,
+      },
+    });
+  } else {
+    await prisma.tokens.create({
+      data: {
+        userId: userId,
+        refreshToken: refreshToken,
+      },
+    });
   }
 }
 
