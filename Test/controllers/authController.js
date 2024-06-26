@@ -5,6 +5,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
 const AuthError = require('../exceptions/errors');
+const cookieParser = require('cookie-parser');
 
 class AuthController {
   async registration(req, res, next) {
@@ -96,9 +97,30 @@ class AuthController {
   async refresh(req, res, next) {
     try {
       const { refreshToken } = req.cookies;
-      const token = await tokenService.refresh(refreshToken);
-      res.cookie('refreshToken', token.refreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
-      return res.json(token);
+  
+      if (!refreshToken) {
+        throw AuthError.UnauthorizedError();
+      }
+  
+      const userData = await tokenService.validateRefreshToken(refreshToken);
+      const tokenFromDB = await tokenService.findToken(refreshToken);
+  
+      if (!userData || !tokenFromDB) {
+        throw AuthError.UnauthorizedError();
+      }
+  
+      const user = await prisma.users.findUnique({
+        where: {
+          id: userData.id
+        }
+      });
+  
+      const tokens = await tokenService.generateTokens({ id: user.id, email: user.email });
+      await tokenService.saveToken(user.id, tokens.refreshToken);
+  
+      res.cookie('refreshToken', tokens.refreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
+      return res.json({ ...tokens, user });
+  
     } catch (e) {
       next(e);
     }
