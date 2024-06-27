@@ -13,8 +13,9 @@ const checkRole = async (req, res, next) => {
         if (!userData) {
             return next(AuthError.UnauthorizedError());
         }
+        console.log(userData.role);
         if (userData.role !== 'organizer') {
-            return next(AuthError.BadRequest('У обычнго пользователя недостаточно прав'));
+            return next(AuthError.BadRequest('У вас недостаточно прав'));
         }
         req.user = userData;
         next();

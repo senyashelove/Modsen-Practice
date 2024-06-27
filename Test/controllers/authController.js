@@ -40,8 +40,8 @@ class AuthController {
           role: 'USER',
         },
       });
-      const accessToken = generateAccessToken({ id: newUser.id, email: newUser.email });
-      const refreshToken = generateRefreshToken({ id: newUser.id, email: newUser.email });
+      const accessToken = generateAccessToken({ id: newUser.id, role: newUser.role });
+      const refreshToken = generateRefreshToken({ id: newUser.id, role: newUser.role });
       await saveRefreshToken(newUser.id, refreshToken);
       res.cookie('refreshToken', refreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
       return res.json({ user: newUser, accessToken });
@@ -66,8 +66,8 @@ class AuthController {
       if (!checkPassword) {
         throw AuthError.BadRequest('Неверный пароль');
       }
-      const accessToken = generateAccessToken({ id: user.id, email: user.email });
-      const refreshToken = generateRefreshToken({ id: user.id, email: user.email });
+      const accessToken = generateAccessToken({ id: user.id, role: user.role });
+      const refreshToken = generateRefreshToken({ id: user.id, role: user.role });
       await saveRefreshToken(user.id, refreshToken);
       res.cookie('refreshToken', refreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
       return res.json({ user, accessToken });
@@ -115,8 +115,8 @@ class AuthController {
       if (!user) {
         throw AuthError.BadRequest('Пользователь не найден');
       }
-      const accessToken = generateAccessToken({ id: user.id, email: user.email });
-      const newRefreshToken = generateRefreshToken({ id: user.id, email: user.email });
+      const accessToken = generateAccessToken({ id: user.id, role: user.role });
+      const newRefreshToken = generateRefreshToken({ id: user.id, role: user.role });
       await saveRefreshToken(user.id, newRefreshToken);
       res.cookie('refreshToken', newRefreshToken, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true });
       return res.json({ accessToken });

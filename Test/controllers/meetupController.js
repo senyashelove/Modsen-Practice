@@ -57,12 +57,12 @@ class MeetupController {
 
       const newMeetup = await prisma.meetups.create({
         data: {
-          title: meetup.title,
+          name: meetup.name,
           description: meetup.description,
           tags: meetup.tags,
           date: new Date(meetup.date),
           location: meetup.location,
-          userId: parseInt(userID),
+          userId: parseInt(req.user.id),
         },
       });
       res.json(newMeetup);
@@ -87,7 +87,7 @@ class MeetupController {
           id: parseInt(meetupID),
         },
         data: {
-          title: meetup.title,
+          name: meetup.name,
           description: meetup.description,
           tags: meetup.tags,
           date: new Date(meetup.date),
