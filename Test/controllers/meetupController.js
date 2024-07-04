@@ -113,6 +113,42 @@ class MeetupController {
       next(error);
     }
   }
+  async joinMeetup(req, res, next) {
+    const { meetupID } = req.params;
+    const userId = req.user.id;
+
+    try {
+      const meetup = await prisma.meetups.findUnique({
+        where: { id: parseInt(meetupID) },
+      });
+
+      if (!meetup) {
+        throw new ApiError('Meetup not found', 404);
+      }
+
+      const existingParticipant = await prisma.meetupsParticipants.findFirst({
+        where: {
+          meetupId: parseInt(meetupID),
+          userId: parseInt(userId),
+        },
+      });
+
+      if (existingParticipant) {
+        return res.status(400).json({ message: 'You are already joined this meetup.' });
+      }
+
+      const participant = await prisma.meetupsParticipants.create({
+        data: {
+          meetupId: parseInt(meetupID),
+          userId: parseInt(userId),
+        },
+      });
+
+      res.status(200).json({ message: 'Successfully joined the meetup!', participant });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new MeetupController();

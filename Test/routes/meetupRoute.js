@@ -9,5 +9,6 @@ meetupRouter.get('/:meetupID', controller.getMeetupByID);
 meetupRouter.post('/', checkRole,  controller.createMeetup);
 meetupRouter.put('/:meetupID', checkRole, controller.updateMeetupByID);
 meetupRouter.delete('/:meetupID', checkRole, controller.deleteMeetupByID);
+meetupRouter.post('/:meetupID/join',authMiddleware, controller.joinMeetup);
 
 module.exports = meetupRouter;

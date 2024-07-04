@@ -260,6 +260,45 @@ paths:
                 properties:
                   success:
                     type: boolean
+  '/meetups/{meetupID}/join':
+    post:
+      summary: Join Meetup
+      security:
+        - tokenAuth: []
+      parameters:
+        - in: path
+          name: meetupID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userID:
+                  type: string
+      responses:
+        '200':
+          description: User successfully joined the meetup
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string               
 components:
   securitySchemes:
     tokenAuth:

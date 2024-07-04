@@ -8,14 +8,15 @@ datasource db {
 }
 
 model Meetups {
-  id          Int      @id @default(autoincrement())
+  id          Int                  @id @default(autoincrement())
   name        String
   description String
   tags        String[]
   date        DateTime
   location    String
   userId      Int
-  Users       Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Users       Users                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  participants MeetupParticipants[]
 }
 
 model Tokens {
@@ -26,11 +27,22 @@ model Tokens {
 }
 
 model Users {
-  id       Int       @id @default(autoincrement())
+  id       Int                  @id @default(autoincrement())
   login    String
   email    String
   password String
   role     String
   Meetups  Meetups[]
   Tokens   Tokens[]
+  participants MeetupParticipants[]
+}
+
+model MeetupParticipants {
+  id       Int     @id @default(autoincrement())
+  meetupId Int
+  userId   Int
+  meetup   Meetups @relation(fields: [meetupId], references: [id], onDelete: Cascade)
+  user     Users   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetupId, userId])
 }
