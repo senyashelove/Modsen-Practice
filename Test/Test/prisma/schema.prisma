@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Meetups {
+  id          Int                  @id @default(autoincrement())
+  name        String               @unique
+  description String
+  tags        String[]
+  date        DateTime
+  location    String
+  userId      Int
+  Users       Users                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  participants MeetupParticipants[]
+
+}
+
+model Tokens {
+  id           Int    @id @default(autoincrement())
+  userId       Int
+  refreshToken String
+  Users        Users  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Users {
+  id       Int                  @id @default(autoincrement())
+  login    String               @unique
+  email    String               @unique
+  password String
+  role     String
+  Meetups  Meetups[]
+  Tokens   Tokens[]
+  participants MeetupParticipants[]
+}
+
+model MeetupParticipants {
+  id       Int     @id @default(autoincrement())
+  meetupId Int
+  userId   Int
+  meetup   Meetups @relation(fields: [meetupId], references: [id], onDelete: Cascade)
+  user     Users   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetupId, userId])
+}

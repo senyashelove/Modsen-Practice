@@ -1,0 +1,337 @@
+openapi: 3.0.0
+info:
+  title: Authentication API
+  version: 1.0.0
+  description: API endpoints for user registration, login, update, and token refresh
+servers:
+  - url: http://localhost:3000 # Update the URL according to your server configuration
+paths:
+  /auth/registration:
+    post:
+      summary: User Registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful registration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                  accessToken:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: array
+                    items:
+                      type: object
+  /auth/login:
+    post:
+      summary: User Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                  accessToken:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /auth/update:
+    put:
+      summary: Update User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /auth/refresh:
+    get:
+      summary: Refresh Access Token
+      responses:
+        '200':
+          description: Access token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /meetups:
+    get:
+      summary: Get All Meetups
+      responses:
+        '200':
+          description: Successful retrieval of all meetups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    meetupID:
+                      type: string
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    tags:
+                      type: array
+                      items:
+                        type: string
+    post:
+      summary: Create a Meetup
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeetupDto'
+      responses:
+        '200':
+          description: Meetup created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meetup:
+                    $ref: '#/components/schemas/MeetupDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  '/meetups/{meetupID}':
+    get:
+      summary: Get Meetup by ID
+      parameters:
+        - in: path
+          name: meetupID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval of meetup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetupDto'
+    put:
+      summary: Update Meetup by ID
+      security:
+        - tokenAuth: []
+      parameters:
+        - in: path
+          name: meetupID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeetupDto'
+      responses:
+        '200':
+          description: Meetup updated successfully
+          content:
+            application/json:
+              schema:
+               type: object
+                properties:
+                  meetup:
+                    $ref: '#/components/schemas/MeetupDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    delete:
+      summary: Delete Meetup by ID
+      security:
+        - tokenAuth: []
+      parameters:
+        - in: path
+          name: meetupID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Meetup deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  '/meetups/{meetupID}/join':
+    post:
+      summary: Join Meetup
+      security:
+        - tokenAuth: []
+      parameters:
+        - in: path
+          name: meetupID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userID:
+                  type: string
+      responses:
+        '200':
+          description: User successfully joined the meetup
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string               
+components:
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+  schemas:
+    MeetupDto:
+      type: object
+      properties:
+        meetupID:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    CreateMeetupDto:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        date:
+          type: string
+          format: date-time
+        location:
+          type: string
